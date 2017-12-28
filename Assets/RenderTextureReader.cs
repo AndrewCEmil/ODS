@@ -8,6 +8,7 @@ public class RenderTextureReader : MonoBehaviour {
 
 	int outImageWidth;
 	int outImageHeight;
+	int sliceWidth;
 	double rotationValue;
 	GameObject vrHolder;
 	GameObject testQuad;
@@ -18,7 +19,8 @@ public class RenderTextureReader : MonoBehaviour {
 	void Start () {
 		outImageWidth = 4096;
 		outImageHeight = 2048;
-		rotationValue = Math.PI * 2 / ((double)outImageWidth);
+		sliceWidth = 10;
+		rotationValue = Math.PI * 2 * ((double)sliceWidth) / ((double)outImageWidth);
 		vrHolder = GameObject.Find ("VR");
 		testQuad = GameObject.Find ("2dQuad");
 		rt = GetComponent<Renderer> ().material.mainTexture as RenderTexture;
@@ -26,9 +28,6 @@ public class RenderTextureReader : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if (Time.frameCount == 5) {
-			RotateVRHolder ();
-		}
 		if (!recorded && Time.frameCount > 5) {
 			Render ();
 			recorded = true;
@@ -79,7 +78,8 @@ public class RenderTextureReader : MonoBehaviour {
 
 		// Create a new Texture2D and read the RenderTexture image into it
 		int widthPosition = thetaToPosition(theta);
-		outTexture.ReadPixels(new Rect(rt.width/2, 0, 1, rt.height), widthPosition, 0);
+		Rect rect = new Rect (rt.width / 2 - (sliceWidth / 2), 0, sliceWidth, rt.height);
+		outTexture.ReadPixels(rect, widthPosition, 0);
 		outTexture.Apply ();
 
 		// Restorie previously active render texture
@@ -91,6 +91,6 @@ public class RenderTextureReader : MonoBehaviour {
 	}
 
 	void RotateVRHolder() {
-		vrHolder.transform.Rotate (0, (float)rotationValue, 0);
+		vrHolder.transform.Rotate (0, ((float)rotationValue) * 360f / ((float)Math.PI * 2f), 0);
 	}
 }
