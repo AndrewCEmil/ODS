@@ -6,20 +6,31 @@ using System.IO;
 
 public class RenderTextureReader : MonoBehaviour {
 
+	int outImageWidth;
+	int outImageHeight;
+	double rotationValue;
+	GameObject vrHolder;
 	GameObject testQuad;
 	RenderTexture rt;
+	Texture2D outTexture;
 	bool recorded;
 	// Use this for initialization
 	void Start () {
+		outImageWidth = 4096;
+		outImageHeight = 2048;
+		rotationValue = Math.PI * 2 / ((double)outImageWidth);
+		vrHolder = GameObject.Find ("VR");
 		testQuad = GameObject.Find ("2dQuad");
-		Texture text = GetComponent<Renderer> ().material.mainTexture;
-		rt = text as RenderTexture;
+		rt = GetComponent<Renderer> ().material.mainTexture as RenderTexture;
 	}
 	
 	// Update is called once per frame
 	void Update () {
+		if (Time.frameCount == 5) {
+			RotateVRHolder ();
+		}
 		if (!recorded && Time.frameCount > 5) {
-			GetTexture ();
+			Render ();
 			recorded = true;
 		}
 	}
@@ -27,30 +38,59 @@ public class RenderTextureReader : MonoBehaviour {
 	//	How to get full verticle slit?
 
 	void Render() {
-		//Rotate camera
-		//	Grab slit
-		//	Write slit
+		outTexture = new Texture2D (outImageWidth, outImageHeight);
+
+		//DEBUG
+		for (int i = 0; i < outImageWidth; i++) {
+			for (int j = 0; j < outImageHeight; j++) {
+				outTexture.SetPixel (i, j, Color.white);
+			}
+		}
+		outTexture.Apply ();
+		testQuad.GetComponent<Renderer> ().material.SetTexture ("_MainTex", outTexture);
+		//END DEBUG
+
+		StartCoroutine ("RenderLoop");
 	}
 
-	void GetTexture() {
+	IEnumerator RenderLoop() {
+		for(double theta = -1 * Math.PI; theta < Math.PI; theta += rotationValue) {
+			GrabSlit(theta);
+			yield return null;
+			RotateVRHolder ();
+			yield return null;
+		}
+
+		WriteImage ();
+	}
+
+	void WriteImage() {
+		Byte[] bytes = outTexture.EncodeToPNG ();
+		FileStream file = File.Open(Application.dataPath + "/texture.png",FileMode.Create);
+		BinaryWriter writer = new BinaryWriter (file);
+		writer.Write (bytes);
+		file.Close ();
+	}
+
+	void GrabSlit(double theta) {
 		RenderTexture currentActiveRT = RenderTexture.active;
 		// Set the supplied RenderTexture as the active one
 		RenderTexture.active = rt;
 
 		// Create a new Texture2D and read the RenderTexture image into it
-		Texture2D tex = new Texture2D(rt.width, rt.height);
-		tex.ReadPixels(new Rect(0, 0, tex.width, tex.height), 0, 0);
-		tex.Apply ();
+		int widthPosition = thetaToPosition(theta);
+		outTexture.ReadPixels(new Rect(rt.width/2, 0, 1, rt.height), widthPosition, 0);
+		outTexture.Apply ();
 
 		// Restorie previously active render texture
 		RenderTexture.active = currentActiveRT;
+	}
 
-		testQuad.GetComponent<Renderer> ().material.SetTexture ("_MainTex", tex);
-		Byte[] bytes = tex.EncodeToPNG ();
-		FileStream file = File.Open(Application.dataPath + "/texture.png",FileMode.Create);
-		BinaryWriter writer = new BinaryWriter (file);
-		writer.Write (bytes);
-		file.Close ();
-		RenderTexture.active = currentActiveRT;
+	int thetaToPosition(double theta) {
+		return (int)(((theta + Math.PI) / (2f * Math.PI)) * outImageWidth);
+	}
+
+	void RotateVRHolder() {
+		vrHolder.transform.Rotate (0, (float)rotationValue, 0);
 	}
 }
