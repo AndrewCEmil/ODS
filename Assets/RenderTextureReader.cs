@@ -5,30 +5,51 @@ using System;
 
 public class RenderTextureReader : MonoBehaviour {
 
+	GameObject testQuad;
 	RenderTexture rt;
 	bool recorded;
 	// Use this for initialization
 	void Start () {
+		testQuad = GameObject.Find ("2dQuad");
 		Texture text = GetComponent<Renderer> ().material.mainTexture;
 		rt = text as RenderTexture;
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		if (!recorded) {
+		if (!recorded && Time.frameCount > 5) {
 			Record ();
 			recorded = true;
 		}
 	}
 
 	void Record() {
-		Texture2D tex2d = new Texture2D (rt.width, rt.height, TextureFormat.ARGB32, false);
-
+		RenderTexture currentActiveRT = RenderTexture.active;
+		// Set the supplied RenderTexture as the active one
 		RenderTexture.active = rt;
-		tex2d.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-		tex2d.Apply();
 
-		Color[] colors = tex2d.GetPixels ();
-		Debug.Log (colors.ToString ());
+		// Create a new Texture2D and read the RenderTexture image into it
+		Texture2D tex = new Texture2D(rt.width, rt.height);
+		tex.ReadPixels(new Rect(0, 0, tex.width, tex.height), 0, 0);
+
+		// Restorie previously active render texture
+		RenderTexture.active = currentActiveRT;
+
+		Color[] colors = tex.GetPixels ();
+		for (int i = 0; i < colors.Length; i++) {
+			Debug.Log ("i: " + i.ToString () + ", color: " + colors [i].ToString ());
+		}
+
+		for (int i = 0; i < rt.width; i++) {
+			for (int j = 0; j < rt.height; j++) {
+				//tex.SetPixel (i, j, Color.red);
+			}
+		}
+		tex.Apply ();
+
+
+
+		testQuad.GetComponent<Renderer> ().material.SetTexture ("_MainTex", tex);
+		RenderTexture.active = currentActiveRT;
 	}
 }
