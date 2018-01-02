@@ -6,13 +6,13 @@ using System.IO;
 
 public class RenderTextureReader : MonoBehaviour {
 
+	public RenderTexture leftRenderTexture;
+	public RenderTexture rightRenderTexture;
 	int outImageWidth;
 	int outImageHeight;
 	int sliceWidth;
 	double rotationValue;
-	GameObject vrHolder;
 	GameObject testQuad;
-	RenderTexture rt;
 	Texture2D outTexture;
 	bool recorded;
 	// Use this for initialization
@@ -21,9 +21,7 @@ public class RenderTextureReader : MonoBehaviour {
 		outImageHeight = 2048;
 		sliceWidth = 10;
 		rotationValue = Math.PI * 2 * ((double)sliceWidth) / ((double)outImageWidth);
-		vrHolder = GameObject.Find ("VR");
 		testQuad = GameObject.Find ("2dQuad");
-		rt = GetComponent<Renderer> ().material.mainTexture as RenderTexture;
 	}
 	
 	// Update is called once per frame
@@ -54,7 +52,7 @@ public class RenderTextureReader : MonoBehaviour {
 
 	IEnumerator RenderLoop() {
 		for(double theta = -1 * Math.PI; theta < Math.PI; theta += rotationValue) {
-			GrabSlit(theta);
+			GrabSlit(theta, leftRenderTexture);
 			yield return null;
 			RotateVRHolder ();
 			yield return null;
@@ -71,10 +69,10 @@ public class RenderTextureReader : MonoBehaviour {
 		file.Close ();
 	}
 
-	void GrabSlit(double theta) {
+	void GrabSlit(double theta, RenderTexture rt) {
 		RenderTexture currentActiveRT = RenderTexture.active;
 		// Set the supplied RenderTexture as the active one
-		RenderTexture.active = rt;
+		RenderTexture.active = leftRenderTexture;
 
 		// Create a new Texture2D and read the RenderTexture image into it
 		int widthPosition = thetaToPosition(theta);
@@ -91,6 +89,6 @@ public class RenderTextureReader : MonoBehaviour {
 	}
 
 	void RotateVRHolder() {
-		vrHolder.transform.Rotate (0, ((float)rotationValue) * 360f / ((float)Math.PI * 2f), 0);
+		transform.Rotate (0, ((float)rotationValue) * 360f / ((float)Math.PI * 2f), 0);
 	}
 }
