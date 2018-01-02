@@ -26,6 +26,9 @@ public class RenderTextureReader : MonoBehaviour {
 		if(Input.GetKeyDown("c")) {
 			Capture ();
 		}
+		if (Input.GetKeyDown ("w")) {
+			WriteImage ();
+		}
 	}
 	//Questions:
 	//	How to get full verticle slit?
