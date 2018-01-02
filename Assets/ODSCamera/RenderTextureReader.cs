@@ -8,51 +8,37 @@ public class RenderTextureReader : MonoBehaviour {
 
 	public RenderTexture leftRenderTexture;
 	public RenderTexture rightRenderTexture;
+	public int sliceWidth;
 	int outImageWidth;
 	int outImageHeight;
-	int sliceWidth;
 	double rotationValue;
-	GameObject testQuad;
 	Texture2D outTexture;
 	bool recorded;
 	// Use this for initialization
 	void Start () {
 		outImageWidth = 4096;
-		outImageHeight = 2048;
-		sliceWidth = 10;
+		outImageHeight = 4096;
 		rotationValue = Math.PI * 2 * ((double)sliceWidth) / ((double)outImageWidth);
-		testQuad = GameObject.Find ("2dQuad");
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		if (!recorded && Time.frameCount > 5) {
-			Render ();
-			recorded = true;
+		if(Input.GetKeyDown("c")) {
+			Capture ();
 		}
 	}
 	//Questions:
 	//	How to get full verticle slit?
 
-	void Render() {
+	void Capture() {
 		outTexture = new Texture2D (outImageWidth, outImageHeight);
-
-		//DEBUG
-		for (int i = 0; i < outImageWidth; i++) {
-			for (int j = 0; j < outImageHeight; j++) {
-				outTexture.SetPixel (i, j, Color.white);
-			}
-		}
-		outTexture.Apply ();
-		testQuad.GetComponent<Renderer> ().material.SetTexture ("_MainTex", outTexture);
-		//END DEBUG
-
-		StartCoroutine ("RenderLoop");
+		StartCoroutine ("CaptureRotateLoop");
 	}
 
-	IEnumerator RenderLoop() {
+	IEnumerator CaptureRotateLoop() {
 		for(double theta = -1 * Math.PI; theta < Math.PI; theta += rotationValue) {
-			GrabSlit(theta, leftRenderTexture);
+			GrabSlit(theta, leftRenderTexture, false);
+			GrabSlit(theta, rightRenderTexture, true);
 			yield return null;
 			RotateVRHolder ();
 			yield return null;
@@ -62,6 +48,7 @@ public class RenderTextureReader : MonoBehaviour {
 	}
 
 	void WriteImage() {
+		outTexture.Apply ();
 		Byte[] bytes = outTexture.EncodeToPNG ();
 		FileStream file = File.Open(Application.dataPath + "/texture.png",FileMode.Create);
 		BinaryWriter writer = new BinaryWriter (file);
@@ -69,16 +56,18 @@ public class RenderTextureReader : MonoBehaviour {
 		file.Close ();
 	}
 
-	void GrabSlit(double theta, RenderTexture rt) {
+	void GrabSlit(double theta, RenderTexture rt, bool bottom) {
 		RenderTexture currentActiveRT = RenderTexture.active;
 		// Set the supplied RenderTexture as the active one
 		RenderTexture.active = leftRenderTexture;
 
-		// Create a new Texture2D and read the RenderTexture image into it
 		int widthPosition = thetaToPosition(theta);
 		Rect rect = new Rect (rt.width / 2 - (sliceWidth / 2), 0, sliceWidth, rt.height);
-		outTexture.ReadPixels(rect, widthPosition, 0);
-		outTexture.Apply ();
+		if (bottom) {
+			outTexture.ReadPixels (rect, widthPosition, rt.height);
+		} else {
+			outTexture.ReadPixels (rect, widthPosition, 0);
+		}
 
 		// Restorie previously active render texture
 		RenderTexture.active = currentActiveRT;
